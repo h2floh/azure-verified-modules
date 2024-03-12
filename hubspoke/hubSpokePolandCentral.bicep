@@ -93,6 +93,7 @@ module virtualMachine 'br/public:avm/res/compute/virtual-machine:0.1.0' = {
       version: 'latest'
     }
     name: 'poland-vm'
+    location: resourceLocation
     nicConfigurations: [
       {
         ipConfigurations: [
@@ -104,7 +105,6 @@ module virtualMachine 'br/public:avm/res/compute/virtual-machine:0.1.0' = {
         nicSuffix: '-nic-01'
         enablePublicIP: false
         enableAcceleratedNetworking: false // Accelerated Networking is not supported for B1s
-        location: resourceLocation
       }
     ]
     osDisk: {
