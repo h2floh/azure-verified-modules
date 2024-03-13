@@ -28,6 +28,7 @@ module hubroutes 'br/public:avm/res/network/route-table:0.2.2' = {
     name: '${regionName}-hub-route'
     // Non-required parameters
     location: resourceLocation
+    disableBgpRoutePropagation: true
     routes: [
       {
         name: 'default'
