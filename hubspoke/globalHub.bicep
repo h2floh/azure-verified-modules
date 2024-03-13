@@ -64,7 +64,7 @@ module firewallPolicy 'br/public:avm/res/network/firewall-policy:0.1.2' = {
   name: '${uniqueString(deployment().name, resourceLocation)}-firewallPolicy-${regionName}'
   params: {
     // Required parameters
-    name: 'firewallPolicy-${resourceLocation}'
+    name: 'firewallPolicy-${regionName}'
     // Non-required parameters
     location: resourceLocation
     tier: 'Basic'
