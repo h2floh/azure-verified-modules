@@ -25,13 +25,13 @@ module virtualHubNetwork 'br/public:avm/res/network/virtual-network:0.1.1' = {
 
 output virtualHubNetworkId string = virtualHubNetwork.outputs.resourceId
 
-module bastionHost 'br/public:avm/res/network/bastion-host:0.1.1' = {
-  name: '${uniqueString(deployment().name, resourceLocation)}-globalBastion'
-  params: {
-    // Required parameters
-    name: 'globalBastion'
-    vNetId: virtualHubNetwork.outputs.resourceId
-    scaleUnits: 1 // testing reducing costs
-    skuName: 'Basic' // testing reducing costs
-  }
-}
+// module bastionHost 'br/public:avm/res/network/bastion-host:0.1.1' = {
+//   name: '${uniqueString(deployment().name, resourceLocation)}-globalBastion'
+//   params: {
+//     // Required parameters
+//     name: 'globalBastion'
+//     vNetId: virtualHubNetwork.outputs.resourceId
+//     scaleUnits: 1 // testing reducing costs
+//     skuName: 'Basic' // testing reducing costs
+//   }
+// }
