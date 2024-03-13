@@ -37,6 +37,13 @@ module hubroutes 'br/public:avm/res/network/route-table:0.2.2' = {
           nextHopType: 'VirtualAppliance'
         }
       }
+      {
+        name: 'internet'
+        properties: {
+          addressPrefix: '0.0.0.0/0'
+          nextHopType: 'Internet'
+        }
+      }
     ]
   }
 }
