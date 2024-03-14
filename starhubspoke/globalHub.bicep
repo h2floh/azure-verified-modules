@@ -10,6 +10,47 @@ param addressPrefixHubFirewall string = '10.0.0.64/26'
 param firewallIpAdress string = '10.0.0.68'
 param addressPrefixHubFirewallManagement string = '10.0.0.128/26'
 
+param polandAddressPrefix string = '10.4.0.0/14'
+param polandFirewallIpAddress string = '10.4.0.68'
+param swedenAddressPrefix string = '10.8.0.0/14'
+param swedenFirewallIpAddress string = '10.8.0.68'
+
+module hubroutes 'br/public:avm/res/network/route-table:0.2.2' = {
+  name: '${uniqueString(deployment().name, resourceLocation)}-udr-${regionName}-hub-route'
+  params: {
+    // Required parameters
+    name: '${regionName}-hub-route'
+    // Non-required parameters
+    location: resourceLocation
+    disableBgpRoutePropagation: true
+    routes: [
+      {
+        name: 'FirewallDefaultRoute'
+        properties: {
+          addressPrefix: '0.0.0.0/0'
+          nextHopType: 'Internet'
+        }
+      }
+      {
+        name: 'ToPoland'
+        properties: {
+          addressPrefix: polandAddressPrefix
+          nextHopIpAddress: polandFirewallIpAddress
+          nextHopType: 'VirtualAppliance'
+        }
+      }
+      {
+        name: 'ToSweden'
+        properties: {
+          addressPrefix: swedenAddressPrefix
+          nextHopIpAddress: swedenFirewallIpAddress
+          nextHopType: 'VirtualAppliance'
+        }
+      }
+    ]
+  }
+}
+
 module virtualHubNetwork 'br/public:avm/res/network/virtual-network:0.1.1' = {
   name: '${uniqueString(deployment().name, resourceLocation)}-hub-${regionName}'
   params: {
@@ -28,6 +69,7 @@ module virtualHubNetwork 'br/public:avm/res/network/virtual-network:0.1.1' = {
       {
         name: 'AzureFirewallSubnet'
         addressPrefix: addressPrefixHubFirewall
+        routeTableResourceId: hubroutes.outputs.resourceId
       }
       {
         name: 'AzureFirewallManagementSubnet'
@@ -49,6 +91,8 @@ output virtualHubNetworkId string = virtualHubNetwork.outputs.resourceId
 //     skuName: 'Basic' // testing reducing costs
 //   }
 // }
+
+
 
 module azfwmgmtip 'br/public:avm/res/network/public-ip-address:0.3.0' = {
   name: '${uniqueString(deployment().name, resourceLocation)}-${regionName}Firewall'
