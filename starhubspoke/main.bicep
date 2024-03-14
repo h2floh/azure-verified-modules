@@ -19,6 +19,10 @@ module hubglobal './globalHub.bicep' = {
     addressPrefixHubFirewall: '10.0.0.64/26'
     firewallIpAdress: '10.0.0.68'
     addressPrefixHubFirewallManagement: '10.0.0.128/26'
+    polandAddressPrefix: '10.4.0.0/14'
+    polandFirewallIpAddress: '10.4.0.68'
+    swedenAddressPrefix: '10.8.0.0/14'
+    swedenFirewallIpAddress: '10.8.0.68'
   }
 }
 

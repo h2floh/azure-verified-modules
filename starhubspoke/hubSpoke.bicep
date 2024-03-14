@@ -31,18 +31,18 @@ module hubroutes 'br/public:avm/res/network/route-table:0.2.2' = {
     disableBgpRoutePropagation: true
     routes: [
       {
-        name: 'default'
+        name: 'FirewallDefaultRoute'
+        properties: {
+          addressPrefix: '0.0.0.0/0'
+          nextHopType: 'Internet'
+        }
+      }
+      {
+        name: 'Global'
         properties: {
           addressPrefix: globalPrivatAddressPrefix
           nextHopIpAddress: globalFirewallAddress
           nextHopType: 'VirtualAppliance'
-        }
-      }
-      {
-        name: 'internet'
-        properties: {
-          addressPrefix: '0.0.0.0/0'
-          nextHopType: 'Internet'
         }
       }
     ]
@@ -78,7 +78,6 @@ module virtualHubNetwork 'br/public:avm/res/network/virtual-network:0.1.1' = {
       {
         name: 'AzureFirewallManagementSubnet'
         addressPrefix: addressPrefixHubFirewallManagement
-        routeTableResourceId: hubroutes.outputs.resourceId
       }
     ]
   }
@@ -129,9 +128,51 @@ module firewallPolicy 'br/public:avm/res/network/firewall-policy:0.1.2' = {
             priority: 5555
             ruleCollectionType: 'FirewallPolicyFilterRuleCollection'
             rules: [
+              // {
+              //   destinationAddresses: [
+              //     addressPrefixSpokeA
+              //   ]
+              //   destinationFqdns: []
+              //   destinationIpGroups: []
+              //   destinationPorts: [
+              //     '*'
+              //   ]
+              //   ipProtocols: [
+              //     'TCP'
+              //     'UDP'
+              //     'ICMP'
+              //   ]
+              //   name: 'SpokeBtoA'
+              //   ruleType: 'NetworkRule'
+              //   sourceAddresses: [
+              //     addressPrefixSpokeB
+              //   ]
+              //   sourceIpGroups: []
+              // }
+              // {
+              //   destinationAddresses: [
+              //     addressPrefixSpokeB
+              //   ]
+              //   destinationFqdns: []
+              //   destinationIpGroups: []
+              //   destinationPorts: [
+              //     '*'
+              //   ]
+              //   ipProtocols: [
+              //     'TCP'
+              //     'UDP'
+              //     'ICMP'
+              //   ]
+              //   name: 'SpokeAtoB'
+              //   ruleType: 'NetworkRule'
+              //   sourceAddresses: [
+              //     addressPrefixSpokeA
+              //   ]
+              //   sourceIpGroups: []
+              // }
               {
                 destinationAddresses: [
-                  addressPrefixSpokeA
+                  globalPrivatAddressPrefix
                 ]
                 destinationFqdns: []
                 destinationIpGroups: []
@@ -143,31 +184,10 @@ module firewallPolicy 'br/public:avm/res/network/firewall-policy:0.1.2' = {
                   'UDP'
                   'ICMP'
                 ]
-                name: 'SpokeBtoA'
+                name: 'HubToHub'
                 ruleType: 'NetworkRule'
                 sourceAddresses: [
-                  addressPrefixSpokeB
-                ]
-                sourceIpGroups: []
-              }
-              {
-                destinationAddresses: [
-                  addressPrefixSpokeB
-                ]
-                destinationFqdns: []
-                destinationIpGroups: []
-                destinationPorts: [
-                  '*'
-                ]
-                ipProtocols: [
-                  'TCP'
-                  'UDP'
-                  'ICMP'
-                ]
-                name: 'SpokeAtoB'
-                ruleType: 'NetworkRule'
-                sourceAddresses: [
-                  addressPrefixSpokeA
+                  globalPrivatAddressPrefix
                 ]
                 sourceIpGroups: []
               }
@@ -237,11 +257,27 @@ module spokearoutes 'br/public:avm/res/network/route-table:0.2.2' = {
       {
         name: 'default'
         properties: {
-          addressPrefix: addressPrefixSpokeB
+          addressPrefix: '0.0.0.0/0'
           nextHopIpAddress: firewallIpAdress
           nextHopType: 'VirtualAppliance'
         }
       }
+      // {
+      //   name: 'default'
+      //   properties: {
+      //     addressPrefix: addressPrefixSpokeB
+      //     nextHopIpAddress: firewallIpAdress
+      //     nextHopType: 'VirtualAppliance'
+      //   }
+      // }
+      // {
+      //   name: 'Global'
+      //   properties: {
+      //     addressPrefix: globalPrivatAddressPrefix
+      //     nextHopIpAddress: firewallIpAdress
+      //     nextHopType: 'VirtualAppliance'
+      //   }
+      // }
     ]
   }
 }
@@ -288,11 +324,27 @@ module spokebroutes 'br/public:avm/res/network/route-table:0.2.2' = {
       {
         name: 'default'
         properties: {
-          addressPrefix: addressPrefixSpokeA
+          addressPrefix: '0.0.0.0/0'
           nextHopIpAddress: firewallIpAdress
           nextHopType: 'VirtualAppliance'
         }
       }
+      // {
+      //   name: 'default'
+      //   properties: {
+      //     addressPrefix: addressPrefixSpokeA
+      //     nextHopIpAddress: firewallIpAdress
+      //     nextHopType: 'VirtualAppliance'
+      //   }
+      // }
+      // {
+      //   name: 'Global'
+      //   properties: {
+      //     addressPrefix: globalPrivatAddressPrefix
+      //     nextHopIpAddress: firewallIpAdress
+      //     nextHopType: 'VirtualAppliance'
+      //   }
+      // }
     ]
   }
 }
