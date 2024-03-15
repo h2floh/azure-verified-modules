@@ -367,7 +367,7 @@ module networkSecurityGroupSpokeASubnetA 'br/public:avm/res/network/network-secu
     // Required parameters
     name: 'nsg-spokea-subneta-${regionName}'
     // Non-required parameters
-    location: regionName
+    location: resourceLocation
   }
 }
 
@@ -377,7 +377,7 @@ module networkSecurityGroupSpokeASubnetB 'br/public:avm/res/network/network-secu
     // Required parameters
     name: 'nsg-spokea-subnetb-${regionName}'
     // Non-required parameters
-    location: regionName
+    location: resourceLocation
   }
 }
 
@@ -456,7 +456,7 @@ module networkSecurityGroupSpokeBSubnetA 'br/public:avm/res/network/network-secu
     // Required parameters
     name: 'nsg-spokeb-subneta-${regionName}'
     // Non-required parameters
-    location: regionName
+    location: resourceLocation
   }
 }
 
@@ -466,7 +466,7 @@ module networkSecurityGroupSpokeBSubnetB 'br/public:avm/res/network/network-secu
     // Required parameters
     name: 'nsg-spokeb-subnetb-${regionName}'
     // Non-required parameters
-    location: regionName
+    location: resourceLocation
   }
 }
 
