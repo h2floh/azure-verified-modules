@@ -101,6 +101,11 @@ module azfwmgmtip 'br/public:avm/res/network/public-ip-address:0.3.0' = {
     name: 'pip-azfw-mgm-${regionName}'
     // Non-required parameters
     location: resourceLocation
+    zones: [
+      '1'
+      '2'
+      '3'
+    ]
   }
 }
 
@@ -198,4 +203,10 @@ resource azfw 'Microsoft.Network/azureFirewalls@2023-04-01' = {
       tier: 'Basic'
     }
   }
+  // SLA 99.99 doesn't add additional costs except traffic between zones
+  zones: [
+    '1'
+    '2'
+    '3'
+  ]
 }
