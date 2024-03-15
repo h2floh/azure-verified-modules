@@ -161,6 +161,9 @@ module azfwmgmtip 'br/public:avm/res/network/public-ip-address:0.3.0' = {
 }
 
 module firewallPolicy 'br/public:avm/res/network/firewall-policy:0.1.2' = {
+  dependsOn: [
+    virtualHubNetwork
+  ]
   name: '${uniqueString(deployment().name, resourceLocation)}-firewallPolicy-${regionName}'
   params: {
     // Required parameters
