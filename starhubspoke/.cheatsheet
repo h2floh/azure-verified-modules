@@ -1,5 +1,0 @@
-az deployment sub create --verbose --location swedencentral --template-file ./main.bicep
-
-az deployment sub modify --verbose --location swedencentral --template-file ./main.bicep
-
-az network bastion ssh --name "swedenBastion" --resource-group "rg-network" --target-ip-address "10.8.34.4" --auth-type "ssh-key" --username "localAdminUser" --ssh-key "~/.ssh/id_rsa"

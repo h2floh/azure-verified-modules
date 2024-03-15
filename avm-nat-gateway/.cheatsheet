@@ -1,0 +1,1 @@
+az deployment sub create --verbose --location swedencentral --template-file ./main.bicep
