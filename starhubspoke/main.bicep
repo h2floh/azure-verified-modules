@@ -40,9 +40,11 @@ module hubSpokeSweden './hubSpoke.bicep' = {
     addressPrefixHubFirewall: '10.8.0.64/26'
     firewallIpAdress: '10.8.0.68'
     addressPrefixHubFirewallManagement: '10.8.0.128/26'
+    addressPrefixAPIManagement: '10.8.0.192/26'
     addressPrefixSpokeA: '10.8.16.0/20'
     addressPrefixSpokeASubnetA: '10.8.16.0/24'
     addressPrefixSpokeASubnetB: '10.8.17.0/24'
+    addressPrefixSpokeASubnetC: '10.8.18.0/24'
     addressPrefixSpokeB: '10.8.32.0/20'
     addressPrefixSpokeBSubnetA: '10.8.33.0/24'
     addressPrefixSpokeBSubnetB: '10.8.34.0/24'
@@ -53,6 +55,9 @@ module hubSpokeSweden './hubSpoke.bicep' = {
 }
 
 module hubSpokePoland './hubSpoke.bicep' = {
+  dependsOn: [
+    hubSpokeSweden
+  ]
   scope: rgnetwork
   name: 'hubPoland'
   params: {
@@ -66,9 +71,11 @@ module hubSpokePoland './hubSpoke.bicep' = {
     addressPrefixHubFirewall: '10.4.0.64/26'
     firewallIpAdress: '10.4.0.68'
     addressPrefixHubFirewallManagement: '10.4.0.128/26'
+    addressPrefixAPIManagement: '10.4.0.192/26'
     addressPrefixSpokeA: '10.4.16.0/20'
     addressPrefixSpokeASubnetA: '10.4.16.0/24'
     addressPrefixSpokeASubnetB: '10.4.17.0/24'
+    addressPrefixSpokeASubnetC: '10.4.18.0/24'
     addressPrefixSpokeB: '10.4.32.0/20'
     addressPrefixSpokeBSubnetA: '10.4.33.0/24'
     addressPrefixSpokeBSubnetB: '10.4.34.0/24'
@@ -90,6 +97,23 @@ module privateDNS './privateDNS.bicep' = {
     networkIdsAndRegions: concat(
       hubSpokePoland.outputs.networkIdsAndRegions,
       hubSpokeSweden.outputs.networkIdsAndRegions
+    )
+  }
+}
+
+module apim './apimanagement.bicep' = {
+  dependsOn: [
+    privateDNS
+    hubglobal
+    hubSpokeSweden
+    hubSpokePoland
+  ]
+  scope: rgnetwork
+  name: 'apimanagement'
+  params: {
+    regionAndHubNetworkId : concat(
+      hubSpokePoland.outputs.regionAndHubNetworkId,
+      hubSpokeSweden.outputs.regionAndHubNetworkId
     )
   }
 }

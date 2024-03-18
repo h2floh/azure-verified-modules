@@ -12,10 +12,12 @@ param addressPrefixHubBastion string = '10.8.0.0/26'
 param addressPrefixHubFirewall string = '10.8.0.64/26'
 param firewallIpAdress string = '10.8.0.68'
 param addressPrefixHubFirewallManagement string = '10.8.0.128/26'
+param addressPrefixAPIManagement string = '10.8.0.192/26'
 
 param addressPrefixSpokeA string = '10.8.16.0/20'
 param addressPrefixSpokeASubnetA string = '10.8.16.0/24'
 param addressPrefixSpokeASubnetB string = '10.8.17.0/24'
+param addressPrefixSpokeASubnetC string = '10.8.18.0/24'
 
 param addressPrefixSpokeB string = '10.8.32.0/20'
 param addressPrefixSpokeBSubnetA string = '10.8.33.0/24'
@@ -54,6 +56,22 @@ module natGatewayPIP 'br/public:avm/res/network/public-ip-address:0.3.0' = {
   params: {
     // Required parameters
     name: 'pip-nat-${regionName}'
+    // Non-required parameters
+    location: resourceLocation
+    skuTier: 'Regional'
+    zones: [
+      '1'
+      '2'
+      '3'
+    ]
+  }
+}
+
+module apimPIP 'br/public:avm/res/network/public-ip-address:0.3.0' = {
+  name: '${uniqueString(deployment().name, resourceLocation)}-pip-apim-${regionName}'
+  params: {
+    // Required parameters
+    name: 'pip-apim-${regionName}'
     // Non-required parameters
     location: resourceLocation
     skuTier: 'Regional'
@@ -127,11 +145,32 @@ module virtualHubNetwork 'br/public:avm/res/network/virtual-network:0.1.1' = {
         name: 'AzureFirewallManagementSubnet'
         addressPrefix: addressPrefixHubFirewallManagement
       }
+      {
+        name: 'APIManagement'
+        addressPrefix: addressPrefixAPIManagement
+        routeTableResourceId: hubroutes.outputs.resourceId
+        delegations: [
+          {
+            name: 'APIManagement'
+            properties: {
+              serviceName: 'Microsoft.ApiManagement/service'
+            }
+          }
+        ]
+      }
     ]
   }
 }
 
 output virtualHubNetworkId string = virtualHubNetwork.outputs.resourceId
+output regionAndHubNetworkId array = [
+  {
+    region: regionName
+    location: resourceLocation
+    subnetid: virtualHubNetwork.outputs.subnetResourceIds[3]
+    publicIpId: apimPIP.outputs.resourceId
+  }
+]
 
 module bastionHost 'br/public:avm/res/network/bastion-host:0.1.1' = {
   name: '${uniqueString(deployment().name, resourceLocation)}-${regionName}Bastion'
@@ -384,6 +423,16 @@ module networkSecurityGroupSpokeASubnetB 'br/public:avm/res/network/network-secu
   }
 }
 
+module networkSecurityGroupSpokeASubnetC 'br/public:avm/res/network/network-security-group:0.1.3' = {
+  name: '${uniqueString(deployment().name, resourceLocation)}-${regionName}-spokea-subnetc-nsg'
+  params: {
+    // Required parameters
+    name: 'nsg-spokea-subnetc-${regionName}'
+    // Non-required parameters
+    location: resourceLocation
+  }
+}
+
 module spokea 'br/public:avm/res/network/virtual-network:0.1.1' = {
   name: '${uniqueString(deployment().name, resourceLocation)}-spoke-a-${resourceLocation}'
   params: {
@@ -412,6 +461,20 @@ module spokea 'br/public:avm/res/network/virtual-network:0.1.1' = {
         addressPrefix: addressPrefixSpokeASubnetB
         routeTableResourceId: spokearoutes.outputs.resourceId
         networkSecurityGroupResourceId: networkSecurityGroupSpokeASubnetB.outputs.resourceId
+      }
+      {
+        name: 'subnet-c'
+        addressPrefix: addressPrefixSpokeASubnetC
+        routeTableResourceId: spokearoutes.outputs.resourceId
+        networkSecurityGroupResourceId: networkSecurityGroupSpokeASubnetC.outputs.resourceId
+        delegations: [
+          {
+            name: 'ContainerInstances'
+            properties: {
+              serviceName: 'Microsoft.ContainerInstance/containerGroups'
+            }
+          }
+        ]
       }
     ]
   }
@@ -617,3 +680,97 @@ output networkIdsAndRegions array = [
     region: regionName
   }
 ]
+
+resource containerInstance 'Microsoft.ContainerInstance/containerGroups@2023-05-01' = {
+  name: '${uniqueString(deployment().name, resourceLocation)}-ci-${regionName}'
+  location: resourceLocation
+  properties: {
+    containers: [
+      {
+        name: 'webapp${regionName}'
+        properties: {
+          // environmentVariables: [
+          //   {
+          //     name: 'string'
+          //     secureValue: 'string'
+          //     //value: 'string'
+          //   }
+          // ]
+          image: 'mcr.microsoft.com/dotnet/samples:aspnetapp'
+          ports: [
+            {
+              port: 8080
+              protocol: 'TCP'
+            }
+          ]
+          resources: {
+            limits: {
+              cpu: 1
+              memoryInGB: json('0.5')
+            }
+            requests: {
+              cpu: 1
+              memoryInGB: json('0.5')
+            }
+          }
+        }
+      }
+    ]
+    ipAddress: {
+      type: 'Private'
+      ports: [
+        {
+          port: 8080
+          protocol: 'TCP'
+        }
+      ]
+    }
+    osType: 'Linux'
+    restartPolicy: 'Always'
+    sku: 'Standard'
+    subnetIds: [
+      {
+        id: spokea.outputs.subnetResourceIds[2]
+        name: 'SpokeA Container Subnet'
+      }
+    ]
+  }
+}
+
+module vault 'br/public:avm/res/key-vault/vault:0.4.0' = {
+  name: '${uniqueString(deployment().name, resourceLocation)}-kv-${regionName}'
+  params: {
+    // Required parameters
+    name: 'kv-${regionName}-${uniqueString(deployment().name, resourceLocation)}'
+    // Non-required parameters
+    enablePurgeProtection: false
+    location: resourceLocation
+  }
+}
+
+module privateEndpoint 'br/public:avm/res/network/private-endpoint:0.4.0' = {
+  dependsOn: [
+    vault
+  ]
+  name: '${uniqueString(deployment().name, resourceLocation)}-pekv-${regionName}'
+  params: {
+    // Required parameters
+    name: 'privateEndpoint-kv-${regionName}'
+    subnetResourceId: spokeb.outputs.subnetResourceIds[1]
+    // Non-required parameters
+    location: resourceLocation
+    lock: {}
+    manualPrivateLinkServiceConnections: []
+    privateLinkServiceConnections: [
+      {
+        name: 'pekv-${regionName}'
+        properties: {
+          groupIds: [
+            'vault'
+          ]
+          privateLinkServiceId: vault.outputs.resourceId
+        }
+      }
+    ]
+  }
+}
