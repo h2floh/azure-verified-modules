@@ -247,26 +247,26 @@ module firewallPolicy 'br/public:avm/res/network/firewall-policy:0.1.2' = {
                 ]
                 sourceIpGroups: []
               }
-              // {
-              //   destinationAddresses: [
-              //     '*'
-              //   ]
-              //   destinationFqdns: []
-              //   destinationIpGroups: []
-              //   destinationPorts: [
-              //     '80'
-              //     '443'
-              //   ]
-              //   ipProtocols: [
-              //     'TCP'
-              //   ]
-              //   name: 'ToInternet'
-              //   ruleType: 'NetworkRule'
-              //   sourceAddresses: [
-              //     globalPrivatAddressPrefix
-              //   ]
-              //   sourceIpGroups: []
-              // }
+              {
+                destinationAddresses: [
+                  '*'
+                ]
+                destinationFqdns: []
+                destinationIpGroups: []
+                destinationPorts: [
+                  '80'
+                  '443'
+                ]
+                ipProtocols: [
+                  'TCP'
+                ]
+                name: 'ToInternet'
+                ruleType: 'NetworkRule'
+                sourceAddresses: [
+                  globalPrivatAddressPrefix
+                ]
+                sourceIpGroups: []
+              }
             ]
           }
         ]
