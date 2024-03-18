@@ -49,6 +49,53 @@ module hubroutes 'br/public:avm/res/network/route-table:0.2.2' = {
   }
 }
 
+module natGatewayPIP 'br/public:avm/res/network/public-ip-address:0.3.0' = {
+  name: '${uniqueString(deployment().name, resourceLocation)}-pip-nat-${regionName}'
+  params: {
+    // Required parameters
+    name: 'pip-nat-${regionName}'
+    // Non-required parameters
+    location: resourceLocation
+    skuTier: 'Regional'
+    zones: [
+      '1'
+      '2'
+      '3'
+    ]
+  }
+}
+
+resource natGateway 'Microsoft.Network/natGateways@2023-04-01' = {
+  name: 'nat-${regionName}'
+  location: resourceLocation
+  sku: {
+    name: 'Standard'
+  }
+  properties: {
+    publicIpAddresses: [
+      {
+        id: natGatewayPIP.outputs.resourceId
+      }
+    ]
+  }
+}
+
+// module natGateway 'br/public:avm/res/network/nat-gateway:1.0.4' = {
+//   dependsOn: [
+//     natGatewayPIP
+//   ]
+//   name: '${uniqueString(deployment().name, resourceLocation)}-nat-${regionName}'
+//   params: {
+//     // Required parameters
+//     name: 'nat-${regionName}'
+//     // Non-required parameters
+//     location: resourceLocation
+//     publicIpResourceIds: [
+//       natGatewayPIP.outputs.resourceId
+//     ]
+//   }
+// }
+
 module virtualHubNetwork 'br/public:avm/res/network/virtual-network:0.1.1' = {
   name: '${uniqueString(deployment().name, resourceLocation)}-hub-${resourceLocation}'
   params: {
@@ -74,6 +121,7 @@ module virtualHubNetwork 'br/public:avm/res/network/virtual-network:0.1.1' = {
         name: 'AzureFirewallSubnet'
         addressPrefix: addressPrefixHubFirewall
         routeTableResourceId: hubroutes.outputs.resourceId
+        natGatewayResourceId: natGateway.id
       }
       {
         name: 'AzureFirewallManagementSubnet'
@@ -104,10 +152,18 @@ module azfwmgmtip 'br/public:avm/res/network/public-ip-address:0.3.0' = {
     name: 'pip-azfw-mgm-${regionName}'
     // Non-required parameters
     location: resourceLocation
+    zones: [
+      '1'
+      '2'
+      '3'
+    ]
   }
 }
 
 module firewallPolicy 'br/public:avm/res/network/firewall-policy:0.1.2' = {
+  dependsOn: [
+    virtualHubNetwork
+  ]
   name: '${uniqueString(deployment().name, resourceLocation)}-firewallPolicy-${regionName}'
   params: {
     // Required parameters
@@ -191,6 +247,26 @@ module firewallPolicy 'br/public:avm/res/network/firewall-policy:0.1.2' = {
                 ]
                 sourceIpGroups: []
               }
+              {
+                destinationAddresses: [
+                  '*'
+                ]
+                destinationFqdns: []
+                destinationIpGroups: []
+                destinationPorts: [
+                  '80'
+                  '443'
+                ]
+                ipProtocols: [
+                  'TCP'
+                ]
+                name: 'ToInternet'
+                ruleType: 'NetworkRule'
+                sourceAddresses: [
+                  globalPrivatAddressPrefix
+                ]
+                sourceIpGroups: []
+              }
             ]
           }
         ]
@@ -244,6 +320,12 @@ resource azfw 'Microsoft.Network/azureFirewalls@2023-04-01' = {
       tier: 'Basic'
     }
   }
+  // SLA 99.99 doesn't add additional costs except traffic between zones
+  zones: [
+    '1'
+    '2'
+    '3'
+  ]
 }
 
 module spokearoutes 'br/public:avm/res/network/route-table:0.2.2' = {
@@ -282,6 +364,26 @@ module spokearoutes 'br/public:avm/res/network/route-table:0.2.2' = {
   }
 }
 
+module networkSecurityGroupSpokeASubnetA 'br/public:avm/res/network/network-security-group:0.1.3' = {
+  name: '${uniqueString(deployment().name, resourceLocation)}-${regionName}-spokea-subneta-nsg'
+  params: {
+    // Required parameters
+    name: 'nsg-spokea-subneta-${regionName}'
+    // Non-required parameters
+    location: resourceLocation
+  }
+}
+
+module networkSecurityGroupSpokeASubnetB 'br/public:avm/res/network/network-security-group:0.1.3' = {
+  name: '${uniqueString(deployment().name, resourceLocation)}-${regionName}-spokea-subnetb-nsg'
+  params: {
+    // Required parameters
+    name: 'nsg-spokea-subnetb-${regionName}'
+    // Non-required parameters
+    location: resourceLocation
+  }
+}
+
 module spokea 'br/public:avm/res/network/virtual-network:0.1.1' = {
   name: '${uniqueString(deployment().name, resourceLocation)}-spoke-a-${resourceLocation}'
   params: {
@@ -303,11 +405,13 @@ module spokea 'br/public:avm/res/network/virtual-network:0.1.1' = {
         name: 'subnet-a'
         addressPrefix: addressPrefixSpokeASubnetA
         routeTableResourceId: spokearoutes.outputs.resourceId
+        networkSecurityGroupResourceId: networkSecurityGroupSpokeASubnetA.outputs.resourceId
       }
       {
         name: 'subnet-b'
         addressPrefix: addressPrefixSpokeASubnetB
         routeTableResourceId: spokearoutes.outputs.resourceId
+        networkSecurityGroupResourceId: networkSecurityGroupSpokeASubnetB.outputs.resourceId
       }
     ]
   }
@@ -349,6 +453,27 @@ module spokebroutes 'br/public:avm/res/network/route-table:0.2.2' = {
   }
 }
 
+module networkSecurityGroupSpokeBSubnetA 'br/public:avm/res/network/network-security-group:0.1.3' = {
+  name: '${uniqueString(deployment().name, resourceLocation)}-${regionName}-spokeb-subneta-nsg'
+  params: {
+    // Required parameters
+    name: 'nsg-spokeb-subneta-${regionName}'
+    // Non-required parameters
+    location: resourceLocation
+  }
+}
+
+module networkSecurityGroupSpokeBSubnetB 'br/public:avm/res/network/network-security-group:0.1.3' = {
+  name: '${uniqueString(deployment().name, resourceLocation)}-${regionName}-spokeb-subnetb-nsg'
+  params: {
+    // Required parameters
+    name: 'nsg-spokeb-subnetb-${regionName}'
+    // Non-required parameters
+    location: resourceLocation
+  }
+}
+
+
 module spokeb 'br/public:avm/res/network/virtual-network:0.1.1' = {
   name: '${uniqueString(deployment().name, resourceLocation)}-spoke-b-${resourceLocation}'
   params: {
@@ -370,11 +495,13 @@ module spokeb 'br/public:avm/res/network/virtual-network:0.1.1' = {
         name: 'subnet-a'
         addressPrefix: addressPrefixSpokeBSubnetA
         routeTableResourceId: spokebroutes.outputs.resourceId
+        networkSecurityGroupResourceId: networkSecurityGroupSpokeBSubnetA.outputs.resourceId
       }
       {
         name: 'subnet-b'
         addressPrefix: addressPrefixSpokeBSubnetB
         routeTableResourceId: spokebroutes.outputs.resourceId
+        networkSecurityGroupResourceId: networkSecurityGroupSpokeBSubnetB.outputs.resourceId
       }
     ]
   }
@@ -475,3 +602,18 @@ module virtualMachineB 'br/public:avm/res/compute/virtual-machine:0.1.0' = {
     ]
   }
 }
+
+output networkIdsAndRegions array = [
+  {
+    networkid: virtualHubNetwork.outputs.resourceId
+    region: regionName
+  }
+  {
+    networkid: spokea.outputs.resourceId
+    region: regionName
+  }
+  {
+    networkid: spokeb.outputs.resourceId
+    region: regionName
+  }
+]

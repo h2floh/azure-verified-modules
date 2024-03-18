@@ -77,3 +77,19 @@ module hubSpokePoland './hubSpoke.bicep' = {
     }]
   }
 }
+
+module privateDNS './privateDNS.bicep' = {
+  dependsOn: [
+    hubglobal
+    hubSpokeSweden
+    hubSpokePoland
+  ]
+  scope: rgnetwork
+  name: 'privateDNS'
+  params: {
+    networkIdsAndRegions: concat(
+      hubSpokePoland.outputs.networkIdsAndRegions,
+      hubSpokeSweden.outputs.networkIdsAndRegions
+    )
+  }
+}
