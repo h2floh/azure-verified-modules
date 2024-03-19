@@ -748,6 +748,12 @@ module vault 'br/public:avm/res/key-vault/vault:0.4.0' = {
   }
 }
 
+output keyvaults array = [
+  {
+    keyvaultName: vault.outputs.name
+  }
+]
+
 module privateEndpoint 'br/public:avm/res/network/private-endpoint:0.4.0' = {
   dependsOn: [
     vault
