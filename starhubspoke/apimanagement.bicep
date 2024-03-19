@@ -14,23 +14,23 @@ module service 'br/public:avm/res/api-management/service:0.1.0' = {
     publisherEmail: 'florian.wagner@devoteam.com'
     publisherName: 'flwagnerdevoteam'
     // Non-required parameters
-    additionalLocations: [for rahnid in skip(regionAndHubNetworkId, 1) :{
-        disableGateway: true
-        location: rahnid.location
-        natGatewayState: false
-        publicIpAddressId: rahnid.publicIpId
-        sku: {
-          capacity: 1
-          name: 'Developer'
-        }
-        virtualNetworkConfiguration: {
-          subnetResourceId: rahnid.subnetid
-        }
-        // zones: [
-        //   'string'
-        // ]
-      }
-    ]
+    // additionalLocations: [for rahnid in skip(regionAndHubNetworkId, 1) :{
+    //     disableGateway: true
+    //     location: rahnid.location
+    //     natGatewayState: false
+    //     publicIpAddressId: rahnid.publicIpId
+    //     sku: {
+    //       capacity: 1
+    //       name: 'Premium'
+    //     }
+    //     virtualNetworkConfiguration: {
+    //       subnetResourceId: rahnid.subnetid
+    //     }
+    //     // zones: [
+    //     //   'string'
+    //     // ]
+    //   }
+    // ]
     location: regionAndHubNetworkId[0].location
     managedIdentities: {
       systemAssigned: true

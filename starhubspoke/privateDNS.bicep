@@ -1,5 +1,14 @@
-param networkIdsAndRegions array = []
-
+param networkIdsAndRegions array = [
+  {
+    region: 'eastus'
+    networkid: '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-avm-az-00000000/providers/Microsoft.Network/virtualNetworks/vnet-avm-az-00000000'
+  }
+]
+param keyvaults array = [
+  {
+    keyvaultName: 'kv-avm-az-00000000'
+  }
+]
 module privateDnsZone 'br/public:avm/res/network/private-dns-zone:0.2.4' = [for region in reduce(map(networkIdsAndRegions, element => [element.region]), [], (cur, next) => union(cur, next)): {
   name: '${uniqueString(deployment().name, 'global')}-dns-regions-${region}'
   params: {
@@ -16,6 +25,11 @@ module privateDnsZone 'br/public:avm/res/network/private-dns-zone:0.2.4' = [for 
   }
 }]
 
+
+resource pepoints 'Microsoft.Network/privateEndpoints@2023-04-01' existing = [for keyvaultIp in keyvaults : {
+  name: keyvaultIp.keyvaultName
+}]
+
 module privateDnsZoneKeyVault 'br/public:avm/res/network/private-dns-zone:0.2.4' = {
   name: '${uniqueString(deployment().name, 'global')}-dns-keyvault-global'
   params: {
@@ -27,6 +41,17 @@ module privateDnsZoneKeyVault 'br/public:avm/res/network/private-dns-zone:0.2.4'
       for networkIdAndRegionLink in networkIdsAndRegions : {
         virtualNetworkResourceId: networkIdAndRegionLink.networkid
         registrationEnabled: false
+      }
+    ]
+    a: [
+      for (keyvaultIp, index) in keyvaults : {
+        aRecords: [
+          {
+            ipv4Address: pepoints[index].properties.ipConfigurations[0].properties.privateIPAddress
+          }
+        ]
+        name: keyvaultIp.keyvaultName
+        ttl: 3600
       }
     ]
   }

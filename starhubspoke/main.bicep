@@ -98,6 +98,10 @@ module privateDNS './privateDNS.bicep' = {
       hubSpokePoland.outputs.networkIdsAndRegions,
       hubSpokeSweden.outputs.networkIdsAndRegions
     )
+    keyvaults: concat(
+      hubSpokePoland.outputs.keyvaults,
+      hubSpokeSweden.outputs.keyvaults
+    )
   }
 }
 
