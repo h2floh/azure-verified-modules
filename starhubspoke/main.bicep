@@ -105,19 +105,62 @@ module privateDNS './privateDNS.bicep' = {
   }
 }
 
-module apim './apimanagement.bicep' = {
-  dependsOn: [
-    privateDNS
-    hubglobal
-    hubSpokeSweden
-    hubSpokePoland
-  ]
-  scope: rgnetwork
-  name: 'apimanagement'
-  params: {
-    regionAndHubNetworkId : concat(
-      hubSpokePoland.outputs.regionAndHubNetworkId,
-      hubSpokeSweden.outputs.regionAndHubNetworkId
-    )
-  }
-}
+// module apim './apimanagement.bicep' = {
+//   dependsOn: [
+//     privateDNS
+//     hubglobal
+//     hubSpokeSweden
+//     hubSpokePoland
+//   ]
+//   scope: rgnetwork
+//   name: 'apimanagement'
+//   params: {
+//     regionAndHubNetworkId : concat(
+//       hubSpokePoland.outputs.regionAndHubNetworkId,
+//       hubSpokeSweden.outputs.regionAndHubNetworkId
+//     )
+//   }
+// }
+
+// module privateDNS './privateDNS.bicep' = {
+//   scope: rgnetwork
+//   name: 'privateDNS'
+//   params: {
+//     networkIdsAndRegions: [
+//       {
+//         region: 'sweden'
+//         networkid: '/subscriptions/d4114dca-ae03-432c-a4a0-b6398988b3c9/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/hub-swedencentral'
+//       }
+//       {
+//         region: 'sweden'
+//         networkid: '/subscriptions/d4114dca-ae03-432c-a4a0-b6398988b3c9/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/spoke-a-swedencentral'
+//       }
+//       {
+//         region: 'sweden'
+//         networkid: '/subscriptions/d4114dca-ae03-432c-a4a0-b6398988b3c9/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/spoke-b-swedencentral'
+//       }
+//       {
+//         region: 'poland'
+//         networkid: '/subscriptions/d4114dca-ae03-432c-a4a0-b6398988b3c9/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/hub-polandcentral'
+//       }
+//       {
+//         region: 'poland'
+//         networkid: '/subscriptions/d4114dca-ae03-432c-a4a0-b6398988b3c9/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/spoke-a-polandcentral'
+//       }
+//       {
+//         region: 'poland'
+//         networkid: '/subscriptions/d4114dca-ae03-432c-a4a0-b6398988b3c9/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/spoke-b-polandcentral'
+//       }
+//     ]
+//     keyvaults: [
+//       {
+//         keyvaultName: 'kv-sweden-5zdakzxsmsnnc'
+//         privateEndpointName: 'privateEndpoint-kv-sweden'
+//       }
+//       {
+//         keyvaultName: 'kv-poland-pvk5ah5axffra'
+//         privateEndpointName: 'privateEndpoint-kv-poland'
+//       }
+//     ]
+//   }
+// }
