@@ -202,6 +202,8 @@ module azfwmgmtip 'br/public:avm/res/network/public-ip-address:0.3.0' = {
 module firewallPolicy 'br/public:avm/res/network/firewall-policy:0.1.2' = {
   dependsOn: [
     virtualHubNetwork
+    spokea
+    spokeb
   ]
   name: '${uniqueString(deployment().name, resourceLocation)}-firewallPolicy-${regionName}'
   params: {
@@ -321,6 +323,7 @@ resource azfw 'Microsoft.Network/azureFirewalls@2023-04-01' = {
     virtualHubNetwork
     bastionHost
     firewallPolicy
+    natGatewayPIP
   ]
   name: '${regionName}Firewall'
   location: resourceLocation
@@ -434,6 +437,9 @@ module networkSecurityGroupSpokeASubnetC 'br/public:avm/res/network/network-secu
 }
 
 module spokea 'br/public:avm/res/network/virtual-network:0.1.1' = {
+  dependsOn: [
+    virtualHubNetwork
+  ]
   name: '${uniqueString(deployment().name, resourceLocation)}-spoke-a-${resourceLocation}'
   params: {
     // Required parameters
@@ -538,6 +544,9 @@ module networkSecurityGroupSpokeBSubnetB 'br/public:avm/res/network/network-secu
 
 
 module spokeb 'br/public:avm/res/network/virtual-network:0.1.1' = {
+  dependsOn: [
+    spokea
+  ]
   name: '${uniqueString(deployment().name, resourceLocation)}-spoke-b-${resourceLocation}'
   params: {
     // Required parameters
@@ -573,6 +582,9 @@ module spokeb 'br/public:avm/res/network/virtual-network:0.1.1' = {
 
 
 module virtualMachineA 'br/public:avm/res/compute/virtual-machine:0.1.0' = {
+  dependsOn: [
+    spokea
+  ]
   name: '${uniqueString(deployment().name, resourceLocation)}-${regionName}-vm-a'
   params: {
     // Required parameters
@@ -620,6 +632,9 @@ module virtualMachineA 'br/public:avm/res/compute/virtual-machine:0.1.0' = {
 }
 
 module virtualMachineB 'br/public:avm/res/compute/virtual-machine:0.1.0' = {
+  dependsOn: [
+    spokeb
+  ]
   name: '${uniqueString(deployment().name, resourceLocation)}-${regionName}-vm-b'
   params: {
     // Required parameters
@@ -682,6 +697,9 @@ output networkIdsAndRegions array = [
 ]
 
 resource containerInstance 'Microsoft.ContainerInstance/containerGroups@2023-05-01' = {
+  dependsOn: [
+    spokea
+  ]
   name: '${uniqueString(deployment().name, resourceLocation)}-ci-${regionName}'
   location: resourceLocation
   properties: {
@@ -748,12 +766,6 @@ module vault 'br/public:avm/res/key-vault/vault:0.4.0' = {
   }
 }
 
-output keyvaults array = [
-  {
-    keyvaultName: vault.outputs.name
-  }
-]
-
 module privateEndpoint 'br/public:avm/res/network/private-endpoint:0.4.0' = {
   dependsOn: [
     vault
@@ -780,3 +792,10 @@ module privateEndpoint 'br/public:avm/res/network/private-endpoint:0.4.0' = {
     ]
   }
 }
+
+output keyvaults array = [
+  {
+    keyvaultName: vault.outputs.name
+    privateEndpointName: privateEndpoint.outputs.name
+  }
+]
