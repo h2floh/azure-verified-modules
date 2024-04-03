@@ -700,7 +700,7 @@ resource containerInstance 'Microsoft.ContainerInstance/containerGroups@2023-05-
   dependsOn: [
     spokea
   ]
-  name: '${uniqueString(deployment().name, resourceLocation)}-ci-${regionName}'
+  name: 'ci-${regionName}'
   location: resourceLocation
   properties: {
     containers: [
@@ -799,3 +799,4 @@ output keyvaults array = [
     privateEndpointName: privateEndpoint.outputs.name
   }
 ]
+
