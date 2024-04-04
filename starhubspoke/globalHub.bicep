@@ -117,7 +117,7 @@ module virtualHubNetwork 'br/public:avm/res/network/virtual-network:0.1.1' = {
       {
         name: 'ApplicationGatewaySubnet'
         addressPrefix: addressPrefixApplicationGateway
-        routeTableResourceId: hubroutes.outputs.resourceId
+        routeTableResourceId: appgwroutes.outputs.resourceId
       }
     ]
   }
