@@ -173,7 +173,7 @@ module virtualHubNetwork 'br/public:avm/res/network/virtual-network:0.1.1' = {
       {
         name: 'AzureBastionSubnet'
         addressPrefix: addressPrefixHubBastion
-        routeTableResourceId: hubroutes.outputs.resourceId
+        // No route table can be attached
       }
       {
         name: 'AzureFirewallSubnet'
