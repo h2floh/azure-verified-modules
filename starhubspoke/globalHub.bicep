@@ -50,9 +50,9 @@ module hubroutes 'br/public:avm/res/network/route-table:0.2.2' = {
         }
       }
       {
-        name: 'ToAppGateway'
+        name: 'ToRegion'
         properties: {
-          addressPrefix: addressPrefixApplicationGateway
+          addressPrefix: addressPrefixHub
           nextHopType: 'VnetLocal'
         }
       }
@@ -103,6 +103,7 @@ module virtualHubNetwork 'br/public:avm/res/network/virtual-network:0.1.1' = {
       {
         name: 'AzureBastionSubnet'
         addressPrefix: addressPrefixHubBastion
+        routeTableResourceId: hubroutes.outputs.resourceId
       }
       {
         name: 'AzureFirewallSubnet'
@@ -450,7 +451,7 @@ resource appGateway 'Microsoft.Network/applicationGateways@2023-04-01' = {
         name: 'RoutingRuleExternal'
         properties: {
           ruleType: 'Basic'
-          priority: 1
+          priority: 2
           httpListener: {
             id: resourceId('Microsoft.Network/applicationGateways/httpListeners', applicationGateWayName, 'ListenerExternal')
           }
