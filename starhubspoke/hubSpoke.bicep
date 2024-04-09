@@ -7,15 +7,20 @@ param regionName string = 'sweden'
 param globalPrivatAddressPrefix string = '10.0.0.0/8'
 param globalFirewallAddress string = '10.0.0.68'
 
+param addressPrefixRegion string = '10.8.0.0/14'
 param addressPrefixHub string = '10.8.0.0/24' 
 param addressPrefixHubBastion string = '10.8.0.0/26'
 param addressPrefixHubFirewall string = '10.8.0.64/26'
 param firewallIpAdress string = '10.8.0.68'
 param addressPrefixHubFirewallManagement string = '10.8.0.128/26'
+param addressPrefixApplicationGateway string =  '10.8.0.192/27'
+param applicationGatewayIpAdress string =  '10.8.0.196'
+param addressPrefixAPIManagement string = '10.8.0.192/27'
 
 param addressPrefixSpokeA string = '10.8.16.0/20'
 param addressPrefixSpokeASubnetA string = '10.8.16.0/24'
 param addressPrefixSpokeASubnetB string = '10.8.17.0/24'
+param addressPrefixSpokeASubnetC string = '10.8.18.0/24'
 
 param addressPrefixSpokeB string = '10.8.32.0/20'
 param addressPrefixSpokeBSubnetA string = '10.8.33.0/24'
@@ -45,6 +50,42 @@ module hubroutes 'br/public:avm/res/network/route-table:0.2.2' = {
           nextHopType: 'VirtualAppliance'
         }
       }
+      {
+        name: 'ToRegion'
+        properties: {
+          addressPrefix: addressPrefixRegion
+          nextHopType: 'VnetLocal'
+        }
+      }
+    ]
+  }
+}
+
+module appgwroutes 'br/public:avm/res/network/route-table:0.2.2' = {
+  name: '${uniqueString(deployment().name, resourceLocation)}-udr-${regionName}-appgw-route'
+  params: {
+    // Required parameters
+    name: '${regionName}-appgw-route'
+    // Non-required parameters
+    location: resourceLocation
+    disableBgpRoutePropagation: true
+    routes: [
+      // For routes associated to subnet containing Application Gateway V2, please ensure '0.0.0.0/0' uses NextHopType as 'Internet'
+      {
+        name: 'Internet'
+        properties: {
+          addressPrefix: '0.0.0.0/0'
+          nextHopType: 'Internet'
+        }
+      }
+      {
+        name: 'FirewallDefaultRoute'
+        properties: {
+          addressPrefix: '10.0.0.0/8'
+          nextHopIpAddress: firewallIpAdress
+          nextHopType: 'VirtualAppliance'
+        }
+      }
     ]
   }
 }
@@ -54,6 +95,22 @@ module natGatewayPIP 'br/public:avm/res/network/public-ip-address:0.3.0' = {
   params: {
     // Required parameters
     name: 'pip-nat-${regionName}'
+    // Non-required parameters
+    location: resourceLocation
+    skuTier: 'Regional'
+    zones: [
+      '1'
+      '2'
+      '3'
+    ]
+  }
+}
+
+module apimPIP 'br/public:avm/res/network/public-ip-address:0.3.0' = {
+  name: '${uniqueString(deployment().name, resourceLocation)}-pip-apim-${regionName}'
+  params: {
+    // Required parameters
+    name: 'pip-apim-${regionName}'
     // Non-required parameters
     location: resourceLocation
     skuTier: 'Regional'
@@ -116,6 +173,7 @@ module virtualHubNetwork 'br/public:avm/res/network/virtual-network:0.1.1' = {
       {
         name: 'AzureBastionSubnet'
         addressPrefix: addressPrefixHubBastion
+        // No route table can be attached
       }
       {
         name: 'AzureFirewallSubnet'
@@ -127,11 +185,37 @@ module virtualHubNetwork 'br/public:avm/res/network/virtual-network:0.1.1' = {
         name: 'AzureFirewallManagementSubnet'
         addressPrefix: addressPrefixHubFirewallManagement
       }
+      {
+        name: 'ApplicationGatewaySubnet'
+        addressPrefix: addressPrefixApplicationGateway
+        routeTableResourceId: hubroutes.outputs.resourceId
+      }
+      {
+        name: 'APIManagement'
+        addressPrefix: addressPrefixAPIManagement
+        routeTableResourceId: hubroutes.outputs.resourceId
+        delegations: [
+          {
+            name: 'APIManagement'
+            properties: {
+              serviceName: 'Microsoft.ApiManagement/service'
+            }
+          }
+        ]
+      }
     ]
   }
 }
 
 output virtualHubNetworkId string = virtualHubNetwork.outputs.resourceId
+output regionAndHubNetworkId array = [
+  {
+    region: regionName
+    location: resourceLocation
+    subnetid: virtualHubNetwork.outputs.subnetResourceIds[4]
+    publicIpId: apimPIP.outputs.resourceId
+  }
+]
 
 module bastionHost 'br/public:avm/res/network/bastion-host:0.1.1' = {
   name: '${uniqueString(deployment().name, resourceLocation)}-${regionName}Bastion'
@@ -163,6 +247,8 @@ module azfwmgmtip 'br/public:avm/res/network/public-ip-address:0.3.0' = {
 module firewallPolicy 'br/public:avm/res/network/firewall-policy:0.1.2' = {
   dependsOn: [
     virtualHubNetwork
+    spokea
+    spokeb
   ]
   name: '${uniqueString(deployment().name, resourceLocation)}-firewallPolicy-${regionName}'
   params: {
@@ -282,6 +368,7 @@ resource azfw 'Microsoft.Network/azureFirewalls@2023-04-01' = {
     virtualHubNetwork
     bastionHost
     firewallPolicy
+    natGatewayPIP
   ]
   name: '${regionName}Firewall'
   location: resourceLocation
@@ -384,7 +471,20 @@ module networkSecurityGroupSpokeASubnetB 'br/public:avm/res/network/network-secu
   }
 }
 
+module networkSecurityGroupSpokeASubnetC 'br/public:avm/res/network/network-security-group:0.1.3' = {
+  name: '${uniqueString(deployment().name, resourceLocation)}-${regionName}-spokea-subnetc-nsg'
+  params: {
+    // Required parameters
+    name: 'nsg-spokea-subnetc-${regionName}'
+    // Non-required parameters
+    location: resourceLocation
+  }
+}
+
 module spokea 'br/public:avm/res/network/virtual-network:0.1.1' = {
+  dependsOn: [
+    virtualHubNetwork
+  ]
   name: '${uniqueString(deployment().name, resourceLocation)}-spoke-a-${resourceLocation}'
   params: {
     // Required parameters
@@ -412,6 +512,20 @@ module spokea 'br/public:avm/res/network/virtual-network:0.1.1' = {
         addressPrefix: addressPrefixSpokeASubnetB
         routeTableResourceId: spokearoutes.outputs.resourceId
         networkSecurityGroupResourceId: networkSecurityGroupSpokeASubnetB.outputs.resourceId
+      }
+      {
+        name: 'subnet-c'
+        addressPrefix: addressPrefixSpokeASubnetC
+        routeTableResourceId: spokearoutes.outputs.resourceId
+        networkSecurityGroupResourceId: networkSecurityGroupSpokeASubnetC.outputs.resourceId
+        delegations: [
+          {
+            name: 'ContainerInstances'
+            properties: {
+              serviceName: 'Microsoft.ContainerInstance/containerGroups'
+            }
+          }
+        ]
       }
     ]
   }
@@ -475,6 +589,9 @@ module networkSecurityGroupSpokeBSubnetB 'br/public:avm/res/network/network-secu
 
 
 module spokeb 'br/public:avm/res/network/virtual-network:0.1.1' = {
+  dependsOn: [
+    spokea
+  ]
   name: '${uniqueString(deployment().name, resourceLocation)}-spoke-b-${resourceLocation}'
   params: {
     // Required parameters
@@ -510,6 +627,9 @@ module spokeb 'br/public:avm/res/network/virtual-network:0.1.1' = {
 
 
 module virtualMachineA 'br/public:avm/res/compute/virtual-machine:0.1.0' = {
+  dependsOn: [
+    spokea
+  ]
   name: '${uniqueString(deployment().name, resourceLocation)}-${regionName}-vm-a'
   params: {
     // Required parameters
@@ -557,6 +677,9 @@ module virtualMachineA 'br/public:avm/res/compute/virtual-machine:0.1.0' = {
 }
 
 module virtualMachineB 'br/public:avm/res/compute/virtual-machine:0.1.0' = {
+  dependsOn: [
+    spokeb
+  ]
   name: '${uniqueString(deployment().name, resourceLocation)}-${regionName}-vm-b'
   params: {
     // Required parameters
@@ -617,3 +740,321 @@ output networkIdsAndRegions array = [
     region: regionName
   }
 ]
+
+resource containerInstance 'Microsoft.ContainerInstance/containerGroups@2023-05-01' = {
+  dependsOn: [
+    spokea
+  ]
+  name: 'ci-${regionName}'
+  location: resourceLocation
+  properties: {
+    containers: [
+      {
+        name: 'webapp${regionName}'
+        properties: {
+          // environmentVariables: [
+          //   {
+          //     name: 'string'
+          //     secureValue: 'string'
+          //     //value: 'string'
+          //   }
+          // ]
+          image: 'mcr.microsoft.com/dotnet/samples:aspnetapp'
+          ports: [
+            {
+              port: 8080
+              protocol: 'TCP'
+            }
+          ]
+          resources: {
+            limits: {
+              cpu: 1
+              memoryInGB: json('0.5')
+            }
+            requests: {
+              cpu: 1
+              memoryInGB: json('0.5')
+            }
+          }
+        }
+      }
+    ]
+    ipAddress: {
+      type: 'Private'
+      ports: [
+        {
+          port: 8080
+          protocol: 'TCP'
+        }
+      ]
+    }
+    osType: 'Linux'
+    restartPolicy: 'Always'
+    sku: 'Standard'
+    subnetIds: [
+      {
+        id: spokea.outputs.subnetResourceIds[2]
+        name: 'SpokeA Container Subnet'
+      }
+    ]
+  }
+}
+
+module vault 'br/public:avm/res/key-vault/vault:0.4.0' = {
+  name: '${uniqueString(deployment().name, resourceLocation)}-kv-${regionName}'
+  params: {
+    // Required parameters
+    name: 'kv-${regionName}-${uniqueString(deployment().name, resourceLocation)}'
+    // Non-required parameters
+    enablePurgeProtection: false
+    location: resourceLocation
+  }
+}
+
+module privateEndpoint 'br/public:avm/res/network/private-endpoint:0.4.0' = {
+  dependsOn: [
+    vault
+  ]
+  name: '${uniqueString(deployment().name, resourceLocation)}-pekv-${regionName}'
+  params: {
+    // Required parameters
+    name: 'privateEndpoint-kv-${regionName}'
+    subnetResourceId: spokeb.outputs.subnetResourceIds[1]
+    // Non-required parameters
+    location: resourceLocation
+    lock: {}
+    manualPrivateLinkServiceConnections: []
+    privateLinkServiceConnections: [
+      {
+        name: 'pekv-${regionName}'
+        properties: {
+          groupIds: [
+            'vault'
+          ]
+          privateLinkServiceId: vault.outputs.resourceId
+        }
+      }
+    ]
+  }
+}
+
+output keyvaults array = [
+  {
+    keyvaultName: vault.outputs.name
+    privateEndpointName: privateEndpoint.outputs.name
+  }
+]
+
+module appgwip 'br/public:avm/res/network/public-ip-address:0.3.0' = {
+  name: '${uniqueString(deployment().name, resourceLocation)}-${regionName}AppGateway'
+  params: {
+    // Required parameters
+    name: 'pip-app-gw-${regionName}'
+    // Non-required parameters
+    location: resourceLocation
+    zones: [
+      '1'
+      '2'
+      '3'
+    ]
+  }
+}
+
+var applicationGateWayName = 'app-gateway-${regionName}'
+resource appGateway 'Microsoft.Network/applicationGateways@2023-04-01' = {
+  name: applicationGateWayName
+  location: resourceLocation
+  properties: {
+    // does not support Autoscaling for the selected SKU tier Basic. Supported SKU tiers are Standard_v2,WAF_v2.
+    autoscaleConfiguration: {
+      maxCapacity: 2
+      minCapacity: 1
+    }
+    backendHttpSettingsCollection: [
+      {
+        name: 'HTTPsetting'
+        properties: {
+          port: 80
+          protocol: 'Http'
+          cookieBasedAffinity: 'Disabled'
+          pickHostNameFromBackendAddress: false
+          requestTimeout: 20
+        }
+      }
+      {
+        name: 'HTTPSsetting'
+        properties: {
+          port: 443
+          protocol: 'Https'
+          cookieBasedAffinity: 'Disabled'
+          pickHostNameFromBackendAddress: false
+          requestTimeout: 20
+        }
+      }
+    ]
+    backendAddressPools: [
+      {
+        id: 'polandvm'
+        name: 'polandvmpool'
+        properties: {
+          backendAddresses: [
+            {
+              fqdn: 'poland-vm-a.poland.flow-soft.internal'
+            }
+            {
+              fqdn: 'poland-vm-b.poland.flow-soft.internal'
+            }
+          ]
+        }
+      }
+      {
+        id: 'swedenvm'
+        name: 'swedenvmpool'
+        properties: {
+          backendAddresses: [
+            {
+              fqdn: 'sweden-vm-a.sweden.flow-soft.internal'
+            }
+            {
+              fqdn: 'sweden-vm-b.sweden.flow-soft.internal'
+            }
+          ]
+        }
+      }
+      {
+        id: 'ci'
+        name: 'cipool'
+        properties: {
+          backendAddresses: [
+            {
+              fqdn: 'ci-sweden.sweden.flow-soft.internal'
+            }
+            {
+              fqdn: 'ci-poland.poland.flow-soft.internal'
+            }
+          ]
+        }
+      }
+    ]
+    frontendIPConfigurations: [
+      {
+        id: 'internalFE'
+        name: 'internalFE'
+        properties: {
+          privateIPAllocationMethod: 'Static'
+          privateIPAddress: applicationGatewayIpAdress
+          subnet: {
+            id: virtualHubNetwork.outputs.subnetResourceIds[3]
+          }
+        }
+      }
+      {
+        id: 'externalFE'
+        name: 'externalFE'
+        properties: {
+          publicIPAddress: {
+            id: appgwip.outputs.resourceId
+          }
+        }
+      }
+    ]
+    frontendPorts: [
+      {
+        id: 'http'
+        name: 'http'
+        properties: {
+          port: 80
+        }
+      }
+      {
+        id: 'https'
+        name: 'https'
+        properties: {
+          port: 443
+        }
+      }
+    ]
+    gatewayIPConfigurations: [
+      {
+        id: 'internalBE'
+        name: 'internalBE'
+        properties: {
+          subnet: {
+            id: virtualHubNetwork.outputs.subnetResourceIds[3]
+          }
+        }
+      }
+    ]
+    httpListeners: [
+      {
+        name: 'ListenerInternal'
+        properties: {
+          frontendIPConfiguration: {
+            id: resourceId('Microsoft.Network/applicationGateways/frontendIPConfigurations', applicationGateWayName, 'internalFE')
+          }
+          frontendPort: {
+            id: resourceId('Microsoft.Network/applicationGateways/frontendPorts', applicationGateWayName, 'http')
+          }
+          protocol: 'Http'
+          requireServerNameIndication: false
+        }
+      }
+      {
+        name: 'ListenerExternal'
+        properties: {
+          frontendIPConfiguration: {
+            id: resourceId('Microsoft.Network/applicationGateways/frontendIPConfigurations', applicationGateWayName, 'externalFE')
+          }
+          frontendPort: {
+            id: resourceId('Microsoft.Network/applicationGateways/frontendPorts', applicationGateWayName, 'http')
+          }
+          protocol: 'Http'
+          requireServerNameIndication: false
+        }
+      }
+    ]
+    requestRoutingRules: [
+      {
+        name: 'RoutingRuleInternal'
+        properties: {
+          ruleType: 'Basic'
+          priority: 1
+          httpListener: {
+            id: resourceId('Microsoft.Network/applicationGateways/httpListeners', applicationGateWayName, 'ListenerInternal')
+          }
+          backendAddressPool: {
+            id: resourceId('Microsoft.Network/applicationGateways/backendAddressPools', applicationGateWayName, 'polandvmpool')
+          }
+          backendHttpSettings: {
+            id: resourceId('Microsoft.Network/applicationGateways/backendHttpSettingsCollection', applicationGateWayName, 'HTTPsetting')
+          }
+        }
+      }
+      {
+        name: 'RoutingRuleExternal'
+        properties: {
+          ruleType: 'Basic'
+          priority: 2
+          httpListener: {
+            id: resourceId('Microsoft.Network/applicationGateways/httpListeners', applicationGateWayName, 'ListenerExternal')
+          }
+          backendAddressPool: {
+            id: resourceId('Microsoft.Network/applicationGateways/backendAddressPools', applicationGateWayName, 'polandvmpool')
+          }
+          backendHttpSettings: {
+            id: resourceId('Microsoft.Network/applicationGateways/backendHttpSettingsCollection', applicationGateWayName, 'HTTPsetting')
+          }
+        }
+      }
+    ]
+    sku: {
+      name: 'Standard_v2'
+      tier: 'Standard_v2'
+    }
+  }
+  zones: [
+    '1'
+    '2'
+    '3'
+  ]
+}
