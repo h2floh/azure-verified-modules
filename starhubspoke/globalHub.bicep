@@ -117,7 +117,7 @@ module virtualHubNetwork 'br/public:avm/res/network/virtual-network:0.1.1' = {
       {
         name: 'ApplicationGatewaySubnet'
         addressPrefix: addressPrefixApplicationGateway
-        routeTableResourceId: appgwroutes.outputs.resourceId
+        routeTableResourceId: hubroutes.outputs.resourceId
       }
     ]
   }
@@ -316,10 +316,10 @@ resource appGateway 'Microsoft.Network/applicationGateways@2023-04-01' = {
         properties: {
           backendAddresses: [
             {
-              fqdn: 'poland-vm-a.poland.internal.flow-soft.com'
+              fqdn: 'poland-vm-a.poland.flow-soft.internal'
             }
             {
-              fqdn: 'poland-vm-b.poland.internal.flow-soft.com'
+              fqdn: 'poland-vm-b.poland.flow-soft.internal'
             }
           ]
         }
@@ -330,10 +330,10 @@ resource appGateway 'Microsoft.Network/applicationGateways@2023-04-01' = {
         properties: {
           backendAddresses: [
             {
-              fqdn: 'sweden-vm-a.sweden.internal.flow-soft.com'
+              fqdn: 'sweden-vm-a.sweden.flow-soft.internal'
             }
             {
-              fqdn: 'sweden-vm-b.sweden.internal.flow-soft.com'
+              fqdn: 'sweden-vm-b.sweden.flow-soft.internal'
             }
           ]
         }
@@ -344,10 +344,10 @@ resource appGateway 'Microsoft.Network/applicationGateways@2023-04-01' = {
         properties: {
           backendAddresses: [
             {
-              fqdn: 'ci-sweden.sweden.internal.flow-soft.com'
+              fqdn: 'ci-sweden.sweden.flow-soft.internal'
             }
             {
-              fqdn: 'ci-poland.poland.internal.flow-soft.com'
+              fqdn: 'ci-poland.poland.flow-soft.internal'
             }
           ]
         }
