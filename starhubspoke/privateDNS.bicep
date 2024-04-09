@@ -14,7 +14,7 @@ module privateDnsZone 'br/public:avm/res/network/private-dns-zone:0.2.4' = [for 
   name: '${uniqueString(deployment().name, 'global')}-dns-regions-${region}'
   params: {
     // Required parameters
-    name: '${region}.internal.flow-soft.com'
+    name: '${region}.flow-soft.internal'
     // Non-required parameters
     location: 'global'
     virtualNetworkLinks: [
