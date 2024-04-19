@@ -7,6 +7,7 @@ param addressPrefix string = '10.0.0.0/24'
 param addressPrefixBastion string = '10.0.0.0/26'
 param addressPrefixVM string = '10.0.0.64/26'
 param addressPrefixPrivateEndpoints string = '10.0.0.128/26'
+param addressPrefixDNS string = '10.0.0.192/28'
 
 module virtualNetwork 'br/public:avm/res/network/virtual-network:0.1.1' = {
   name: '${uniqueString(deployment().name, resourceLocation)}-dns-${regionName}'
@@ -31,6 +32,18 @@ module virtualNetwork 'br/public:avm/res/network/virtual-network:0.1.1' = {
       {
         name: 'PrivateEndpointSubnet'
         addressPrefix: addressPrefixPrivateEndpoints
+      }
+      {
+        name: 'DNS'
+        addressPrefix: addressPrefixDNS
+        delegations: [
+          {
+            name: 'dnsResolvers'
+            properties: {
+              serviceName: 'Microsoft.Network/dnsResolvers'
+            }
+          }
+        ]
       }
     ]
   }
@@ -108,7 +121,7 @@ module privateDnsZoneBlob 'br/public:avm/res/network/private-dns-zone:0.2.4' = {
     virtualNetworkLinks: [
       {
         virtualNetworkResourceId: virtualNetwork.outputs.resourceId
-        registrationEnabled: true
+        registrationEnabled: false
       } 
     ]
   }
@@ -118,7 +131,7 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.6.7' = {
   name: '${uniqueString(deployment().name, resourceLocation)}-${regionName}-storageaccount'
   params: {
     // Required parameters
-    name: 'conn${uniqueString(deployment().name, resourceLocation)}'
+    name: '${toLower(regionName)}${uniqueString(deployment().name, resourceLocation)}'
     // Non-required parameters
     kind: 'BlobStorage'
     location: resourceLocation
@@ -133,5 +146,55 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.6.7' = {
       }
     ]
     publicNetworkAccess: 'Enabled'
+  }
+}
+
+var dnsResolverName = '${regionName}-dnsresolver'
+module dnsResolver 'br/public:avm/res/network/dns-resolver:0.3.0' = if (main) {
+  name: '${uniqueString(deployment().name, resourceLocation)}-${regionName}-dnsresolver'
+  params: {
+    // Required parameters
+    name: '${regionName}-dnsresolver'
+    virtualNetworkResourceId: virtualNetwork.outputs.resourceId
+    location: resourceLocation
+    outboundEndpoints: [
+      {
+        name: 'ndrmax-az-pdnsout-x-001'
+        subnetResourceId: virtualNetwork.outputs.subnetResourceIds[3]
+      }
+    ]
+  }
+}
+
+module dnsForwardingRuleset 'br/public:avm/res/network/dns-forwarding-ruleset:0.2.5' = if (main) {
+  name: '${uniqueString(deployment().name, resourceLocation)}-${regionName}-dnsForwardingRulesetDeployment'
+  params: {
+    // Required parameters
+    dnsForwardingRulesetOutboundEndpointResourceIds: [
+      resourceId('Microsoft.Network/dnsResolvers/outboundEndpoints', dnsResolverName, 'ndrmax-az-pdnsout-x-001')
+    ]
+    name: 'dnsfrs001'
+
+    // Non-required parameters
+    forwardingRules: [
+      {
+        domainName: 'tobereplaced.blob.core.windows.net.'
+        forwardingRuleState: 'Enabled'
+        name: 'toPublic'
+        targetDnsServers: [
+          {
+            ipAddress: '8.8.8.8'
+            port: '53'
+          }
+        ]
+      }
+    ]
+    location: resourceLocation
+    virtualNetworkLinks: [
+      {
+        name: 'vnetlink1'
+        virtualNetworkResourceId: virtualNetwork.outputs.resourceId
+      }
+    ]
   }
 }
