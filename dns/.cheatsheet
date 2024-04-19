@@ -1,0 +1,5 @@
+az deployment sub create --verbose --location swedencentral --template-file ./main.bicep
+
+nslookup -debug -type=a .blob.core.windows.net
+nslookup -debug -type=a .blob.core.windows.net 8.8.8.8
+nslookup -debug -type=ns .blob.core.windows.net
