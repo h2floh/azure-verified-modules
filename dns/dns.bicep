@@ -104,7 +104,7 @@ module virtualMachine 'br/public:avm/res/compute/virtual-machine:0.1.0' = if (ma
     disablePasswordAuthentication: true
     publicKeys: [
       {
-        keyData: 'ssh-rsa ***REMOVED***'
+        keyData: 'ssh-rsa keydata'
         path: '/home/localAdminUser/.ssh/authorized_keys'
       }
     ]

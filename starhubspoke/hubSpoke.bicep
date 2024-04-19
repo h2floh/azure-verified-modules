@@ -669,7 +669,7 @@ module virtualMachineA 'br/public:avm/res/compute/virtual-machine:0.1.0' = {
     disablePasswordAuthentication: true
     publicKeys: [
       {
-        keyData: 'ssh-rsa ***REMOVED***'
+        keyData: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDbayTrbSOQE+jlz+PzfJQzIHgATX2Gj+owdpD1/HHqtDrXMd6SqNlyf3/k0pYbCsXjA/A7MzJgAT1Kj5GwjGlDkIQA8kjVW9TByPDV+s//C6vTy1H6dE4jZYvTeolsm7JBkGOyTXI+pcL6vLkhzWIESxkeUG/LR08UPWVjcfk2Oqsk2I/AUiZxWhWcVIYasfJSHolrOHPcRdLNQoAY7iw3vrq4kw6DkcTVa9BTdxt0sym/j6TPMAJgA1z53ONt38PywIZ/Fb/dQer5QusOSJS4+rKR9gYHOAio3TWnmG7azERXpD2btD4OV4jvFhDx2EuFhRC4ZYLaPX5dnd4FIM2yhFi/zFWoCpYOSIZt21DMYr4qTZWP0arf/IL23ZkxssQlNTKlYdANfc1R0r7JMJO36/xZZq1h8N80MHKMyWWuXOYfGksrh617jqysOY20F09f0HpdES3oWN4vpRCWSAmDLyLnljg0Z20NTrKxDcCcAXj3vcZzxB+9UPnAQlfeX9c='
         path: '/home/localAdminUser/.ssh/authorized_keys'
       }
     ]
@@ -719,7 +719,7 @@ module virtualMachineB 'br/public:avm/res/compute/virtual-machine:0.1.0' = {
     disablePasswordAuthentication: true
     publicKeys: [
       {
-        keyData: 'ssh-rsa ***REMOVED***'
+        keyData: 'ssh-rsa keydata'
         path: '/home/localAdminUser/.ssh/authorized_keys'
       }
     ]
