@@ -1,0 +1,2 @@
+az deployment sub create --verbose --location italynorth --name asedemo --template-file ./main.bicep
+
