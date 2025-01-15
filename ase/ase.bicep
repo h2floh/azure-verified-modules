@@ -96,19 +96,41 @@ module appplan1 'br/public:avm/res/web/serverfarm:0.4.1' = {
   name: '${uniqueString(deployment().name, resourceLocation)}-appplan1-${regionName}'
   params: {
     // Required parameters
-    name: 'appplan1-${regionName}'
+    name: 'windows-plan-a-${regionName}'
     // Non-required parameters
-    kind: 'app'
+    kind: 'windows'
     location: resourceLocation
     appServiceEnvironmentId: asEnvironment.outputs.resourceId
     perSiteScaling: true
-    skuCapacity: 3
+    skuCapacity: 1
     skuName: 'I1v2'
     tags: {
       Environment: 'App Plan 1'
+      OS: 'Windows'
       Role: 'Various'
     }
     zoneRedundant: true
+  }
+}
+
+module appplan2 'br/public:avm/res/web/serverfarm:0.4.1' = {
+  name: '${uniqueString(deployment().name, resourceLocation)}-appplan2-${regionName}'
+  params: {
+    // Required parameters
+    name: 'linux-plan-a-${regionName}'
+    // Non-required parameters
+    kind: 'linux'
+    location: resourceLocation
+    appServiceEnvironmentId: asEnvironment.outputs.resourceId
+    perSiteScaling: true
+    skuCapacity: 1
+    skuName: 'I1v2'
+    tags: {
+      Environment: 'App Plan 2'
+      OS: 'Linux'
+      Role: 'Various'
+    }
+    zoneRedundant: false
   }
 }
 
@@ -117,7 +139,7 @@ module webapp1 'br/public:avm/res/web/site:0.11.0' = {
   params: {
     // Required parameters
     kind: 'app'
-    name: 'webapp1-${regionName}'
+    name: 'windows-inprocess'
     serverFarmResourceId: appplan1.outputs.resourceId
     // Non-required parameters
     basicPublishingCredentialsPolicies: [
@@ -139,6 +161,21 @@ module webapp1 'br/public:avm/res/web/site:0.11.0' = {
     scmSiteAlsoStopped: true
     siteConfig: {
       alwaysOn: true
+      appSettings: [
+        {
+          name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
+          value: 'true'
+        }
+        {
+          name: 'aspnetapp'
+          value: 'samples/aspnetapp/aspnetapp'
+        }
+      ]
+      sourceControl: {
+        repoUrl: 'https://github.com/dotnet/dotnet-docker'
+        branch: 'main'
+        isManualIntegration: false
+      }
     }
     slots: [
       {
@@ -152,21 +189,25 @@ module webapp1 'br/public:avm/res/web/site:0.11.0' = {
             name: 'scm'
           }
         ]
-        name: 'prod'
+        name: 'dev'
         siteConfig: {
           alwaysOn: true
+          appSettings: [
+            {
+              name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
+              value: 'true'
+            }
+            {
+              name: 'aspnetapp'
+              value: 'samples/aspnetapp/aspnetapp'
+            }
+          ]
+          sourceControl: {
+            repoUrl: 'https://github.com/dotnet/dotnet-docker'
+            branch: 'main'
+            isManualIntegration: false
+          }
         }
-      }
-      {
-        basicPublishingCredentialsPolicies: [
-          {
-            name: 'ftp'
-          }
-          {
-            name: 'scm'
-          }
-        ]
-        name: 'dev'
       }
     ]
     vnetContentShareEnabled: true
@@ -179,9 +220,9 @@ module webapp2 'br/public:avm/res/web/site:0.11.0' = {
   name: '${uniqueString(deployment().name, resourceLocation)}-webapp2-${regionName}'
   params: {
     // Required parameters
-    kind: 'app'
-    name: 'webapp2-${regionName}'
-    serverFarmResourceId: appplan1.outputs.resourceId
+    kind: 'app,linux,container'
+    name: 'linux-container'
+    serverFarmResourceId: appplan2.outputs.resourceId
     // Non-required parameters
     basicPublishingCredentialsPolicies: [
       {
@@ -202,24 +243,9 @@ module webapp2 'br/public:avm/res/web/site:0.11.0' = {
     scmSiteAlsoStopped: true
     siteConfig: {
       alwaysOn: true
+      linuxFxVersion: 'DOCKER|mcr.microsoft.com/dotnet/samples:aspnetapp'
     }
     slots: [
-      {
-        basicPublishingCredentialsPolicies: [
-          {
-            allow: false
-            name: 'ftp'
-          }
-          {
-            allow: false
-            name: 'scm'
-          }
-        ]
-        name: 'prod'
-        siteConfig: {
-          alwaysOn: true
-        }
-      }
       {
         basicPublishingCredentialsPolicies: [
           {
@@ -230,6 +256,10 @@ module webapp2 'br/public:avm/res/web/site:0.11.0' = {
           }
         ]
         name: 'dev'
+        siteConfig: {
+          alwaysOn: true
+          linuxFxVersion: 'DOCKER|mcr.microsoft.com/dotnet/samples:aspnetapp'
+        }
       }
     ]
     vnetContentShareEnabled: true
@@ -276,5 +306,50 @@ module virtualMachineA 'br/public:avm/res/compute/virtual-machine:0.1.0' = {
     // encryptionAtHost: true // default true if not working use 'az feature register --name EncryptionAtHost --namespace Microsoft.Compute'
     // Non-required parameters
     adminPassword: 'Password1234!'
+  }
+}
+
+module privateDnsZoneBlob 'br/public:avm/res/network/private-dns-zone:0.2.4' = {
+  name: '${uniqueString(deployment().name, resourceLocation)}-dns-zone-${regionName}'
+  params: {
+    // Required parameters
+    name: '${asEnvironment.outputs.name}.appserviceenvironment.net'
+    // Non-required parameters
+    location: 'global'
+    virtualNetworkLinks: [
+      {
+        virtualNetworkResourceId: virtualNetwork.outputs.resourceId
+        registrationEnabled: false
+      } 
+    ]
+    a: [
+      {
+        name: '*'
+        ttl: 300
+        aRecords: [
+          {
+            ipv4Address: '10.0.0.4'
+          }
+        ]
+      }
+      {
+        name: '@'
+        ttl: 300
+        aRecords: [
+          {
+            ipv4Address: '10.0.0.4'
+          }
+        ]
+      }
+      {
+        name: '*.scm'
+        ttl: 300
+        aRecords: [
+          {
+            ipv4Address: '10.0.0.4'
+          }
+        ]
+      }
+    ]
   }
 }
