@@ -1,0 +1,2 @@
+az deployment sub create --verbose --location italynorth --name managedrunnerdemo --template-file ./main.bicep
+
