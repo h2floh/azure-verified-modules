@@ -11,6 +11,11 @@ jobs:
   set-and-read-secret:
     runs-on: 
       group: vnet-runners
+
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
     #   - name: Checkout repository
     #     uses: actions/checkout@v3
