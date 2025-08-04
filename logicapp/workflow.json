@@ -1,0 +1,209 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "sapConnectionString": {
+        "type": "string",
+        "metadata": {
+          "description": "SAP connection string for receiving data"
+        }
+      },
+      "sqlConnectionString": {
+        "type": "string",
+        "metadata": {
+          "description": "SQL Server connection string for writing data"
+        }
+      }
+    },
+    "triggers": {
+      "SAP_Data_Received": {
+        "type": "HttpRequest",
+        "kind": "Http",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "sapData": {
+                "type": "object",
+                "properties": {
+                  "documentType": {
+                    "type": "string"
+                  },
+                  "documentNumber": {
+                    "type": "string"
+                  },
+                  "customerCode": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "number"
+                  },
+                  "currency": {
+                    "type": "string"
+                  },
+                  "date": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "documentType",
+                  "documentNumber",
+                  "customerCode",
+                  "amount",
+                  "currency",
+                  "date"
+                ]
+              }
+            },
+            "required": [
+              "sapData"
+            ]
+          }
+        }
+      }
+    },
+    "actions": {
+      "Parse_SAP_Data": {
+        "type": "ParseJson",
+        "inputs": {
+          "content": "@triggerBody()?['sapData']",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "documentType": {
+                "type": "string"
+              },
+              "documentNumber": {
+                "type": "string"
+              },
+              "customerCode": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "currency": {
+                "type": "string"
+              },
+              "date": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "runAfter": {}
+      },
+      "Validate_Required_Fields": {
+        "type": "Condition",
+        "expression": {
+          "and": [
+            {
+              "not": {
+                "equals": [
+                  "@body('Parse_SAP_Data')?['documentNumber']",
+                  null
+                ]
+              }
+            },
+            {
+              "not": {
+                "equals": [
+                  "@body('Parse_SAP_Data')?['customerCode']",
+                  null
+                ]
+              }
+            },
+            {
+              "not": {
+                "equals": [
+                  "@body('Parse_SAP_Data')?['amount']",
+                  null
+                ]
+              }
+            }
+          ]
+        },
+        "actions": {
+          "Insert_Data_to_SQL": {
+            "type": "SqlServerStoredProcedure",
+            "inputs": {
+              "body": {
+                "DocumentType": "@body('Parse_SAP_Data')?['documentType']",
+                "DocumentNumber": "@body('Parse_SAP_Data')?['documentNumber']",
+                "CustomerCode": "@body('Parse_SAP_Data')?['customerCode']",
+                "Amount": "@body('Parse_SAP_Data')?['amount']",
+                "Currency": "@body('Parse_SAP_Data')?['currency']",
+                "DocumentDate": "@body('Parse_SAP_Data')?['date']",
+                "Description": "@coalesce(body('Parse_SAP_Data')?['description'], '')",
+                "ProcessedDate": "@utcNow()"
+              },
+              "host": {
+                "connectionName": "sql",
+                "operationId": "executeStoredProcedure",
+                "apiId": "/subscriptions/@{workflow().subscriptionId}/providers/Microsoft.Web/locations/@{workflow().location}/managedApis/sql"
+              },
+              "method": "post",
+              "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('default'))}/procedures/@{encodeURIComponent(encodeURIComponent('[dbo].[InsertSAPData]'))}"
+            },
+            "runAfter": {}
+          },
+          "Success_Response": {
+            "type": "Response",
+            "kind": "Http",
+            "inputs": {
+              "statusCode": 200,
+              "headers": {
+                "Content-Type": "application/json"
+              },
+              "body": {
+                "status": "success",
+                "message": "SAP data successfully processed and inserted into SQL Database",
+                "documentNumber": "@body('Parse_SAP_Data')?['documentNumber']",
+                "processedAt": "@utcNow()"
+              }
+            },
+            "runAfter": {
+              "Insert_Data_to_SQL": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "else": {
+          "actions": {
+            "Error_Response": {
+              "type": "Response",
+              "kind": "Http",
+              "inputs": {
+                "statusCode": 400,
+                "headers": {
+                  "Content-Type": "application/json"
+                },
+                "body": {
+                  "status": "error",
+                  "message": "Missing required fields: documentNumber, customerCode, or amount",
+                  "receivedData": "@body('Parse_SAP_Data')"
+                }
+              },
+              "runAfter": {}
+            }
+          }
+        },
+        "runAfter": {
+          "Parse_SAP_Data": [
+            "Succeeded"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  },
+  "kind": "Stateful"
+}
