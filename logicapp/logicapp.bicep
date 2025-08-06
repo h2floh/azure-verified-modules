@@ -13,14 +13,15 @@ var sqlDatabaseName = 'db-sap-data'
 var servicePlanName = 'asp-${uniqueSuffix}'
 
 // Storage Account for Logic App Standard
-resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
-  name: storageAccountName
-  location: resourceLocation
-  sku: {
-    name: 'Standard_LRS'
-  }
-  kind: 'StorageV2'
-  properties: {
+module storageAccount 'br/public:avm/res/storage/storage-account:0.6.7' = {
+  name: '${uniqueString(deployment().name, resourceLocation)}-storage'
+  params: {
+    // Required parameters
+    name: storageAccountName
+    // Non-required parameters
+    location: resourceLocation
+    skuName: 'Standard_LRS'
+    kind: 'StorageV2'
     minimumTlsVersion: 'TLS1_2'
     allowBlobPublicAccess: false
     supportsHttpsTrafficOnly: true
@@ -31,15 +32,16 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
 }
 
 // App Service Plan for Logic App Standard
-resource servicePlan 'Microsoft.Web/serverfarms@2023-01-01' = {
-  name: servicePlanName
-  location: resourceLocation
-  sku: {
-    name: 'WS1'
-    tier: 'WorkflowStandard'
-  }
-  kind: 'elastic'
-  properties: {
+module servicePlan 'br/public:avm/res/web/serverfarm:0.4.1' = {
+  name: '${uniqueString(deployment().name, resourceLocation)}-serverfarm'
+  params: {
+    // Required parameters
+    name: servicePlanName
+    // Non-required parameters
+    location: resourceLocation
+    skuName: 'WS1'
+    skuTier: 'WorkflowStandard'
+    kind: 'elastic'
     elasticScaleEnabled: true
     maximumElasticWorkerCount: 20
   }
@@ -84,12 +86,16 @@ resource sqlDatabase 'Microsoft.Sql/servers/databases@2023-05-01-preview' = {
 }
 
 // Logic App Standard
-resource logicApp 'Microsoft.Web/sites@2023-01-01' = {
-  name: logicAppName
-  location: resourceLocation
-  kind: 'functionapp,workflowapp'
-  properties: {
-    serverFarmId: servicePlan.id
+module logicApp 'br/public:avm/res/web/site:0.11.0' = {
+  name: '${uniqueString(deployment().name, resourceLocation)}-logicapp'
+  params: {
+    // Required parameters
+    kind: 'functionapp,workflowapp'
+    name: logicAppName
+    serverFarmResourceId: servicePlan.outputs.resourceId
+    // Non-required parameters
+    location: resourceLocation
+    httpsOnly: true
     siteConfig: {
       netFrameworkVersion: 'v6.0'
       use32BitWorkerProcess: false
@@ -98,11 +104,11 @@ resource logicApp 'Microsoft.Web/sites@2023-01-01' = {
       appSettings: [
         {
           name: 'AzureWebJobsStorage'
-          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.outputs.name};AccountKey=${storageAccount.outputs.primaryAccessKey};EndpointSuffix=core.windows.net'
         }
         {
           name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
-          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.outputs.name};AccountKey=${storageAccount.outputs.primaryAccessKey};EndpointSuffix=core.windows.net'
         }
         {
           name: 'WEBSITE_CONTENTSHARE'
@@ -142,13 +148,12 @@ resource logicApp 'Microsoft.Web/sites@2023-01-01' = {
         }
       ]
     }
-    httpsOnly: true
   }
 }
 
 // Outputs
-output logicAppName string = logicApp.name
-output logicAppId string = logicApp.id
+output logicAppName string = logicApp.outputs.name
+output logicAppId string = logicApp.outputs.resourceId
 output sqlServerName string = sqlServer.name
 output sqlDatabaseName string = sqlDatabase.name
-output storageAccountName string = storageAccount.name
+output storageAccountName string = storageAccount.outputs.name
