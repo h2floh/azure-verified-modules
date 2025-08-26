@@ -1,28 +1,47 @@
 # App Service Template
 
-This template demonstrates how to deploy a simple Azure App Service using Azure Verified Modules (AVM).
+This template demonstrates how to deploy Azure App Service using Azure Verified Modules (AVM), with both Linux and Windows variants.
+
+## Variants
+
+### Linux App Service (Default)
+- **Files**: `main.bicep` + `appservice.bicep`
+- **Runtime**: Node.js 18 LTS on Linux containers
+- **App Service Plan**: Linux B1 SKU
+
+### Windows App Service
+- **Files**: `main-windows.bicep` + `appservice-windows.bicep`
+- **Runtime**: .NET 8.0 on Windows
+- **App Service Plan**: Windows B1 SKU
 
 ## Resources Deployed
 
-- **App Service Plan**: Linux-based B1 SKU plan for cost-effective hosting
-- **Web App**: Node.js 18 LTS application with system-assigned managed identity
+Both variants deploy:
+- **App Service Plan**: B1 SKU plan for cost-effective hosting
+- **Web App**: Application with system-assigned managed identity
 
 ## Features
 
 - HTTPS-only configuration
 - System-assigned managed identity enabled
-- Linux container hosting with Node.js runtime
 - Basic tier for cost-effective development/demo scenarios
 - Ready for source code deployment via Git or CI/CD pipelines
 
 ## Deployment
 
-Deploy at subscription level:
-
+### Linux Version (Default)
 ```bash
 az deployment sub create \
   --location swedencentral \
   --template-file main.bicep \
+  --parameters resourceLocation=swedencentral
+```
+
+### Windows Version
+```bash
+az deployment sub create \
+  --location swedencentral \
+  --template-file main-windows.bicep \
   --parameters resourceLocation=swedencentral
 ```
 
@@ -50,7 +69,7 @@ This template is ideal for:
 ## Next Steps
 
 After deployment, you can:
-- Deploy your Node.js application using Git deployment
+- Deploy your application using Git deployment, VS Code, or CI/CD
 - Add Application Insights for monitoring (see ASE template for example)
 - Configure custom domains and SSL certificates
 - Set up deployment slots for staging
