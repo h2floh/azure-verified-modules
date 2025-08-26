@@ -1,0 +1,7 @@
+az deployment sub create --verbose --location swedencentral --name appservicedemo --template-file ./main.bicep
+
+# With custom parameters
+az deployment sub create --verbose --location swedencentral --name appservicedemo --template-file ./main.bicep --parameters resourceLocation=westeurope
+
+# Clean up
+az group delete --name rg-appservice --yes --no-wait
