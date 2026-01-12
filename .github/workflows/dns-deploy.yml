@@ -46,6 +46,6 @@ jobs:
             --parameters resourceLocation='${{ inputs.location }}' \
             --name dns-deployment-${{ inputs.environment }}-$(date +%Y%m%d-%H%M%S)
 
-      - name: Get Deployment Output
+      - name: Display Deployment Status
         run: |
           echo "DNS solution deployed successfully to ${{ inputs.environment }} environment"
