@@ -2,6 +2,8 @@ param resourceLocation string = 'swedencentral'
 
 param regionName string = 'swedencentral'
 
+param publicKey string
+
 param main bool = true
 param addressPrefix string = '10.0.0.0/24' 
 param addressPrefixBastion string = '10.0.0.0/26'
@@ -104,7 +106,8 @@ module virtualMachine 'br/public:avm/res/compute/virtual-machine:0.1.0' = if (ma
     disablePasswordAuthentication: true
     publicKeys: [
       {
-        keyData: 'ssh-rsa keydata'
+        // sample content of publicKey 'ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAr...'
+        keyData: publicKey
         path: '/home/localAdminUser/.ssh/authorized_keys'
       }
     ]
