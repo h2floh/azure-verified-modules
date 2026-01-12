@@ -43,6 +43,7 @@ jobs:
             --verbose \
             --location ${{ inputs.location }} \
             --template-file ./main.bicep \
+            --parameters resourceLocation='${{ inputs.location }}' \
             --name dns-deployment-${{ inputs.environment }}-$(date +%Y%m%d-%H%M%S)
 
       - name: Get Deployment Output
