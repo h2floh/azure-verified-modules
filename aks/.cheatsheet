@@ -1,0 +1,11 @@
+az deployment sub create --verbose --location swedencentral --name aksdemo --template-file ./main.bicep
+
+# Alternative with custom location
+az deployment sub create --verbose --location swedencentral --name aksdemo --template-file ./main.bicep --parameters resourceLocation=westeurope
+
+# Get AKS credentials after deployment
+az aks get-credentials --resource-group rg-aks --name aks-global
+
+# Test kubectl access
+kubectl get nodes
+kubectl get pods --all-namespaces
