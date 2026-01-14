@@ -1,0 +1,1 @@
+az deployment sub create --verbose --location westeurope --name aksdemo --template-file ./main.bicep
