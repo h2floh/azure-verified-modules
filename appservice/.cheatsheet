@@ -1,0 +1,14 @@
+# Linux App Service (Default)
+az deployment sub create --verbose --location swedencentral --name appservicedemo --template-file ./main.bicep
+
+# Windows App Service
+az deployment sub create --verbose --location swedencentral --name appservicewindowsdemo --template-file ./main-windows.bicep
+
+# With custom parameters
+az deployment sub create --verbose --location swedencentral --name appservicedemo --template-file ./main.bicep --parameters resourceLocation=westeurope
+
+# Clean up Linux
+az group delete --name rg-appservice --yes --no-wait
+
+# Clean up Windows
+az group delete --name rg-appservice-windows --yes --no-wait
