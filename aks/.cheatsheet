@@ -1,0 +1,8 @@
+az deployment sub create --verbose --location swedencentral --template-file ./main.bicep
+
+# Connect to AKS cluster
+az aks get-credentials --resource-group rg-aks --name aks-cluster-global
+
+# Check cluster status
+kubectl get nodes
+kubectl get pods --all-namespaces
