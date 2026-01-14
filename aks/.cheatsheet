@@ -1,0 +1,5 @@
+az deployment sub create --verbose --location eastus --template-file ./main.bicep
+
+kubectl get nodes
+kubectl get pods --all-namespaces
+az aks get-credentials --resource-group rg-aks --name aks-aks
