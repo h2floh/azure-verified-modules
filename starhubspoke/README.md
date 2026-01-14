@@ -23,7 +23,7 @@ The Star Hub-Spoke topology consists of:
         10.8.0.0/24              10.4.0.0/24
         /      \                 /      \
     Spoke-A  Spoke-B        Spoke-A  Spoke-B
-    10.8.16  10.8.32        10.4.16  10.4.32
+    10.8.16.0/20  10.8.32.0/20  10.4.16.0/20  10.4.32.0/20
 ```
 
 ## Benefits

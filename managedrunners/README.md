@@ -26,10 +26,11 @@ Before deploying, update the parameters in `main.bicep`:
 2. **Peering Network Configuration**:
    ```bicep
    param peeringNetworkRegion string = 'swedencentral'  // Region of GitHub runner network
-   param peeringNetworkId string = '/subscriptions/00000000-0000-0000-0000-000000000000/...'  // Full resource ID
+   param peeringNetworkId string = '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-runners/providers/Microsoft.Network/virtualNetworks/vnet-runners'
    ```
 
-⚠️ **Important**: Replace the placeholder `peeringNetworkId` with your actual GitHub runner VNet resource ID.
+⚠️ **Important**: Replace the placeholder `peeringNetworkId` with your actual GitHub runner VNet resource ID in the format:
+`/subscriptions/{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.Network/virtualNetworks/{vnet-name}`
 
 ## Deployment
 

@@ -98,8 +98,10 @@ Each solution follows a consistent deployment pattern:
 |----------|-------------------|------------------|
 | starhubspoke | `az deployment sub create --verbose --location swedencentral --template-file ./main.bicep` | 45-60 min |
 | dns | `az deployment sub create --verbose --location swedencentral --template-file ./main.bicep --parameters publicKey="<your-key>"` | 15-20 min |
-| ase | `az deployment sub create --verbose --location italynorth --name asedemo --template-file ./main.bicep` | 2-3 hours |
+| ase | `az deployment sub create --verbose --location italynorth --name asedemo --template-file ./main.bicep` | 2-3 hours* |
 | managedrunners | `az deployment sub create --verbose --location italynorth --name managedrunnerdemo --template-file ./main.bicep` | 15-20 min |
+
+\* *ASE deployment time is significantly longer due to the provisioning of the App Service Environment itself.*
 
 ## 📚 About Azure Verified Modules
 
