@@ -2,6 +2,8 @@ param resourceLocation string = 'swedencentral'
 
 param regionName string = 'swedencentral'
 
+param publicKey string
+
 param main bool = true
 param addressPrefix string = '10.0.0.0/24' 
 param addressPrefixBastion string = '10.0.0.0/26'
@@ -62,9 +64,6 @@ module bastionHost 'br/public:avm/res/network/bastion-host:0.1.1' = if (main) {
 }
 
 module virtualMachine 'br/public:avm/res/compute/virtual-machine:0.1.0' = if (main) {
-  dependsOn: [
-    virtualNetwork
-  ]
   name: '${uniqueString(deployment().name, resourceLocation)}-${regionName}-vm'
   params: {
     // Required parameters
@@ -104,7 +103,8 @@ module virtualMachine 'br/public:avm/res/compute/virtual-machine:0.1.0' = if (ma
     disablePasswordAuthentication: true
     publicKeys: [
       {
-        keyData: 'ssh-rsa keydata'
+        // sample content of publicKey 'ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAr...'
+        keyData: publicKey
         path: '/home/localAdminUser/.ssh/authorized_keys'
       }
     ]
@@ -167,6 +167,9 @@ module dnsResolver 'br/public:avm/res/network/dns-resolver:0.3.0' = if (main) {
 }
 
 module dnsForwardingRuleset 'br/public:avm/res/network/dns-forwarding-ruleset:0.2.5' = if (main) {
+  dependsOn: [
+    dnsResolver
+  ]
   name: '${uniqueString(deployment().name, resourceLocation)}-${regionName}-dnsForwardingRulesetDeployment'
   params: {
     // Required parameters

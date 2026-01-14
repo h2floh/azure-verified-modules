@@ -1,6 +1,7 @@
 targetScope = 'subscription'
 
 param resourceLocation string = 'swedencentral'
+param publicKey string
 
 resource rgdnsprime 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   name: 'rg-dns-primary'
@@ -19,6 +20,7 @@ module dnstest './dns.bicep' = {
     main: true
     resourceLocation: 'swedencentral'
     regionName: 'A'
+    publicKey: publicKey
     addressPrefix: '10.0.0.0/24' 
     addressPrefixBastion: '10.0.0.0/26'
     addressPrefixVM: '10.0.0.64/26'
@@ -33,6 +35,7 @@ module dnstest2 './dns.bicep' = {
     main: false
     resourceLocation: 'swedencentral'
     regionName: 'B'
+    publicKey: publicKey
     addressPrefix: '10.0.0.0/24' 
     addressPrefixBastion: '10.0.0.0/26'
     addressPrefixVM: '10.0.0.64/26'
