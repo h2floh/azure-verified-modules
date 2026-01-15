@@ -1,7 +1,7 @@
 targetScope = 'subscription'
 
 param resourceLocation string = 'swedencentral'
-param publicKey string
+param publicKey string = ''
 
 resource rgdnsprime 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   name: 'rg-dns-primary'
